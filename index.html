@@ -41,7 +41,8 @@
         }
 
         .hero,
-        .catalog {
+        .catalog,
+        .structure {
             background: var(--paper);
             border: 1px solid var(--line);
             border-radius: 28px;
@@ -118,7 +119,8 @@
             color: var(--muted);
         }
 
-        .catalog {
+        .catalog,
+        .structure {
             margin-top: 28px;
             padding: 28px;
         }
@@ -135,6 +137,30 @@
             margin: 10px 0 0;
             color: var(--muted);
             line-height: 1.7;
+        }
+
+        .structure-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+
+        .structure-card {
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.7);
+        }
+
+        .structure-card h3 {
+            margin: 10px 0 8px;
+            font-size: 1.2rem;
+        }
+
+        .structure-card p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.75;
         }
 
         .grid {
@@ -303,33 +329,75 @@
             <span class="eyebrow">VideCoding Experiments</span>
             <h1>VideCodingTools</h1>
             <p>
-                這裡整理我用 VideCoding 開發的各種簡易工具與互動小作品。未來每個工具都會以獨立頁面方式收錄，方便持續擴充，也方便直接透過 GitHub Pages 對外展示。
+                這裡整理我用 VideCoding 開發的各種簡易工具與互動小作品。現在已改成將原始碼專案與可發布頁面分開管理，方便同時保留完整 source，也能透過 GitHub Pages 對外展示。
             </p>
             <div class="meta">
-                <span>靜態頁面部署友善</span>
-                <span>每個工具獨立資料夾</span>
+                <span>`apps/` 放原始碼</span>
+                <span>`pages/` 放可發布頁面</span>
                 <span>可持續增加更多子頁面</span>
+            </div>
+        </section>
+
+        <section class="structure">
+            <div class="catalog-head">
+                <div>
+                    <span class="eyebrow">Project Layout</span>
+                    <h2>結構說明</h2>
+                    <p>這個 repo 現在採用雙層結構，讓 React/Vite 類型專案可以保留完整開發檔案，同時輸出獨立的靜態頁面。</p>
+                </div>
+            </div>
+
+            <div class="structure-grid">
+                <div class="structure-card">
+                    <span class="card-type">Source</span>
+                    <h3>`apps/`</h3>
+                    <p>放各工具的原始碼，例如 Vite、React、Tailwind、`src/`、`package.json` 與 build 設定檔。</p>
+                </div>
+
+                <div class="structure-card">
+                    <span class="card-type">Published</span>
+                    <h3>`pages/`</h3>
+                    <p>放 GitHub Pages 要直接公開的靜態頁內容，例如 `index.html`、`assets/`、縮圖與最終 build 輸出。</p>
+                </div>
             </div>
         </section>
 
         <section class="catalog">
             <div class="catalog-head">
                 <div>
-                    <span class="eyebrow">Tool Catalog</span>
-                    <h2>工具入口</h2>
-                    <p>新增工具時，只要建立新的資料夾與 <code>index.html</code>，再把連結補到這個首頁即可。</p>
+                    <span class="eyebrow">Published Pages</span>
+                    <h2>已發布工具入口</h2>
+                    <p>首頁卡片只連到 `pages/` 下已可直接瀏覽的工具；尚未 build 完成的原始碼專案則保留在 `apps/`。</p>
                 </div>
             </div>
 
             <div class="grid">
-                <a class="card" href="./TravelScrapbook/">
+                <a class="card" href="./pages/TravelScrapbook/">
                     <div class="card-thumb">
-                        <img src="./TravelScrapbook/thumbnail.png" alt="Travel Scrapbook 預覽縮圖">
+                        <img src="./pages/TravelScrapbook/thumbnail.png" alt="Travel Scrapbook 預覽縮圖">
                     </div>
                     <div class="card-body">
                         <span class="card-type">互動工具</span>
                         <h3>Travel Scrapbook</h3>
                         <p>旅遊時光貼貼樂。可加入照片、手寫感筆記與印章，並將整張旅遊拼貼輸出成圖片。</p>
+                        <div class="card-footer">開啟頁面 -></div>
+                    </div>
+                </a>
+
+                <a class="card" href="./pages/AIVideoMaskClipCreator/">
+                    <div class="card-thumb">
+                        <div class="card-thumb-placeholder">
+                            <div>
+                                <strong>AI Video Mask Clip Creator</strong>
+                                <span>Vite + React build 輸出頁面</span>
+                            </div>
+                            <div class="card-thumb-badge">React</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <span class="card-type">React/Vite 工具</span>
+                        <h3>AI Video Mask Clip Creator</h3>
+                        <p>影片遮罩片段產生工具，原始碼保留在 <code>apps/</code>，靜態 build 輸出到 <code>pages/</code> 供 GitHub Pages 使用。</p>
                         <div class="card-footer">開啟頁面 -></div>
                     </div>
                 </a>
@@ -347,7 +415,7 @@
                     <div class="card-body">
                         <span class="card-type">預留位置</span>
                         <h3>Next Tool</h3>
-                        <p>未來新的工具可以依照相同方式加入，例如 <code>ToolName/index.html</code>。</p>
+                        <p>未來新的工具可以先放在 <code>apps/ToolName</code> 開發，build 後再輸出到 <code>pages/ToolName</code>。</p>
                         <div class="card-footer">等待新增</div>
                     </div>
                 </div>
@@ -355,7 +423,7 @@
         </section>
 
         <footer>
-            GitHub Pages 啟用後，這個首頁可作為專案入口；各工具頁面則以子路徑方式存在，例如 <code>/TravelScrapbook/</code>。
+            GitHub Pages 啟用後，這個首頁可作為專案入口；各工具頁面則建議從 <code>/pages/工具名稱/</code> 形式對外提供。
         </footer>
     </main>
 </body>
