@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideCodingTools</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f5efe4;
+            --paper: rgba(255, 252, 245, 0.88);
+            --ink: #1e293b;
+            --muted: #5b6472;
+            --line: rgba(30, 41, 59, 0.12);
+            --accent: #c96f3b;
+            --accent-soft: #f3d2b4;
+            --shadow: 0 20px 60px rgba(81, 55, 33, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Noto Sans TC", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(201, 111, 59, 0.18), transparent 28%),
+                radial-gradient(circle at bottom right, rgba(75, 85, 99, 0.12), transparent 30%),
+                linear-gradient(180deg, #f8f4ec 0%, var(--bg) 100%);
+        }
+
+        .shell {
+            width: min(1120px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 48px 0 72px;
+        }
+
+        .hero,
+        .catalog {
+            background: var(--paper);
+            border: 1px solid var(--line);
+            border-radius: 28px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+        }
+
+        .hero {
+            position: relative;
+            overflow: hidden;
+            padding: 40px 28px;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            inset: auto -40px -80px auto;
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle, rgba(201, 111, 59, 0.2), transparent 70%);
+            pointer-events: none;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            margin-bottom: 12px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: var(--accent-soft);
+            color: #7a431e;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        h1,
+        h2 {
+            margin: 0;
+            font-family: "DM Serif Display", serif;
+            font-weight: 400;
+            letter-spacing: 0.01em;
+        }
+
+        h1 {
+            font-size: clamp(2.4rem, 5vw, 4.6rem);
+            line-height: 0.98;
+            max-width: 9ch;
+        }
+
+        .hero p {
+            max-width: 720px;
+            margin: 18px 0 0;
+            color: var(--muted);
+            font-size: 1.05rem;
+            line-height: 1.8;
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .meta span {
+            display: inline-flex;
+            align-items: center;
+            padding: 9px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid var(--line);
+            font-size: 0.92rem;
+            color: var(--muted);
+        }
+
+        .catalog {
+            margin-top: 28px;
+            padding: 28px;
+        }
+
+        .catalog-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .catalog-head p {
+            margin: 10px 0 0;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 18px;
+        }
+
+        .card {
+            display: block;
+            text-decoration: none;
+            color: inherit;
+            border-radius: 24px;
+            padding: 22px;
+            border: 1px solid var(--line);
+            background:
+                linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(250, 242, 232, 0.92)),
+                #fff;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 18px 34px rgba(81, 55, 33, 0.12);
+            border-color: rgba(201, 111, 59, 0.35);
+        }
+
+        .card-type {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: rgba(201, 111, 59, 0.12);
+            color: #8d4f28;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .card h3 {
+            margin: 16px 0 10px;
+            font-size: 1.35rem;
+        }
+
+        .card p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.75;
+        }
+
+        .card-footer {
+            margin-top: 18px;
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .empty {
+            border: 1px dashed rgba(30, 41, 59, 0.18);
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        footer {
+            margin-top: 20px;
+            padding: 0 6px;
+            color: var(--muted);
+            font-size: 0.92rem;
+            line-height: 1.8;
+        }
+
+        code {
+            padding: 0.15em 0.4em;
+            border-radius: 6px;
+            background: rgba(30, 41, 59, 0.08);
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 0.92em;
+        }
+
+        @media (max-width: 640px) {
+            .shell {
+                width: min(100% - 20px, 1120px);
+                padding-top: 20px;
+                padding-bottom: 40px;
+            }
+
+            .hero,
+            .catalog {
+                border-radius: 22px;
+                padding: 22px;
+            }
+
+            .catalog-head {
+                display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <section class="hero">
+            <span class="eyebrow">VideCoding Experiments</span>
+            <h1>VideCodingTools</h1>
+            <p>
+                這裡整理我用 VideCoding 開發的各種簡易工具與互動小作品。未來每個工具都會以獨立頁面方式收錄，方便持續擴充，也方便直接透過 GitHub Pages 對外展示。
+            </p>
+            <div class="meta">
+                <span>靜態頁面部署友善</span>
+                <span>每個工具獨立資料夾</span>
+                <span>可持續增加更多子頁面</span>
+            </div>
+        </section>
+
+        <section class="catalog">
+            <div class="catalog-head">
+                <div>
+                    <span class="eyebrow">Tool Catalog</span>
+                    <h2>工具入口</h2>
+                    <p>新增工具時，只要建立新的資料夾與 <code>index.html</code>，再把連結補到這個首頁即可。</p>
+                </div>
+            </div>
+
+            <div class="grid">
+                <a class="card" href="./TravelScrapbook/">
+                    <span class="card-type">互動工具</span>
+                    <h3>Travel Scrapbook</h3>
+                    <p>旅遊時光貼貼樂。可加入照片、手寫感筆記與印章，並將整張旅遊拼貼輸出成圖片。</p>
+                    <div class="card-footer">開啟頁面 -></div>
+                </a>
+
+                <div class="card empty">
+                    <span class="card-type">預留位置</span>
+                    <h3>Next Tool</h3>
+                    <p>未來新的工具可以依照相同方式加入，例如 <code>ToolName/index.html</code>。</p>
+                    <div class="card-footer">等待新增</div>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            GitHub Pages 啟用後，這個首頁可作為專案入口；各工具頁面則以子路徑方式存在，例如 <code>/TravelScrapbook/</code>。
+        </footer>
+    </main>
+</body>
+</html>
