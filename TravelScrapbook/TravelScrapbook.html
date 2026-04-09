@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>旅遊時光貼貼樂 - Travel Scrapbook</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Permanent+Marker&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f0f2f5;
+            overflow: hidden;
+            font-family: 'Noto Sans TC', sans-serif;
+            margin: 0;
+            padding: 0;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: none;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            background-color: #fafaf8;
+            background-image: radial-gradient(#d1d5db 1.5px, transparent 1.5px);
+            background-size: 30px 30px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.02);
+        }
+
+        #canvas-container::before {
+            content: '';
+            position: absolute;
+            left: 40px;
+            top: 0; bottom: 0;
+            width: 2px;
+            background: rgba(239, 68, 68, 0.1);
+            pointer-events: none;
+        }
+
+        .scrapbook-item {
+            position: absolute;
+            cursor: move;
+            will-change: transform, left, top;
+            padding: 20px; /* 增加感應範圍 */
+            display: inline-block;
+            touch-action: none;
+            transition: outline 0.2s ease;
+        }
+
+        /* 選中狀態：顯示邊框與控制項 */
+        .scrapbook-item.active {
+            outline: 2px dashed #3b82f6;
+            outline-offset: -10px;
+            z-index: 9999 !important;
+        }
+
+        .polaroid {
+            background: white;
+            padding: 8px 8px 28px 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-radius: 2px;
+            pointer-events: none;
+        }
+
+        .polaroid img {
+            width: 140px;
+            height: 140px;
+            object-fit: cover;
+            display: block;
+        }
+
+        @media (min-width: 768px) {
+            .polaroid img { width: 180px; height: 180px; }
+        }
+
+        .torn-paper {
+            background: #fffef0;
+            padding: 15px;
+            min-width: 120px;
+            max-width: 220px;
+            box-shadow: 2px 2px 8px rgba(0,0,0,0.1);
+            clip-path: polygon(0% 2%, 15% 0%, 35% 3%, 55% 0%, 75% 2%, 90% 0%, 100% 3%, 98% 35%, 100% 65%, 97% 95%, 85% 100%, 65% 98%, 45% 100%, 25% 97%, 5% 100%, 2% 75%, 5% 50%, 0% 25%);
+            font-family: 'Permanent Marker', cursive;
+            color: #444;
+            pointer-events: none;
+            word-wrap: break-word;
+            font-size: 1.1rem;
+            line-height: 1.4;
+        }
+
+        .travel-stamp {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            font-weight: bold;
+            mix-blend-mode: multiply;
+            pointer-events: none;
+            white-space: nowrap;
+            filter: contrast(0.8) sepia(0.2);
+        }
+
+        /* 控制項外觀 */
+        .control-dot {
+            position: absolute;
+            width: 32px;
+            height: 32px;
+            background: white;
+            border: 2px solid #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            cursor: pointer;
+            pointer-events: auto;
+            z-index: 100;
+            visibility: hidden; /* 預設隱藏 */
+        }
+
+        .scrapbook-item.active .control-dot {
+            visibility: visible; /* 只有選中時顯示 */
+        }
+
+        .btn-delete { top: 0px; right: 0px; color: #ef4444; font-size: 16px; }
+        .btn-transform { bottom: 0px; right: 0px; color: #3b82f6; }
+
+        .toolbar {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0,0,0,0.1);
+            padding: 10px 20px;
+            border-radius: 50px;
+            display: flex;
+            gap: 15px;
+            z-index: 10000;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+        }
+
+        .tool-btn {
+            color: #4b5563;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+
+        #photo-input { display: none; }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 11000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 340px;
+        }
+
+        .stamp-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .stamp-option {
+            font-size: 30px;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 12px;
+            background: #f9fafb;
+            text-align: center;
+        }
+
+        #loading-toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #374151;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 12000;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading-toast">正在準備您的相簿...</div>
+
+    <div id="canvas-container">
+        <div class="absolute top-10 left-0 w-full text-center pointer-events-none px-4">
+            <h1 class="text-2xl font-bold text-gray-800 tracking-widest opacity-10">TRAVEL JOURNAL</h1>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <button class="tool-btn" onclick="document.getElementById('photo-input').click()">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span>相片</span>
+        </button>
+        <input type="file" id="photo-input" accept="image/*">
+
+        <button class="tool-btn" onclick="showModal('note-modal')">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+            <span>筆記</span>
+        </button>
+
+        <button class="tool-btn" onclick="showModal('stamp-modal')">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            <span>印章</span>
+        </button>
+
+        <button class="tool-btn text-blue-500" onclick="downloadScrapbook()">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            <span>儲存</span>
+        </button>
+    </div>
+
+    <div id="note-modal" class="modal-overlay" onclick="if(event.target==this) closeModal('note-modal')">
+        <div class="modal-content">
+            <h3 class="font-bold mb-4">寫下心情</h3>
+            <textarea id="note-text" class="w-full border-2 border-gray-100 p-4 rounded-xl mb-4 h-32 focus:border-blue-400 outline-none" placeholder="記錄這一刻..."></textarea>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeModal('note-modal')" class="text-gray-400">取消</button>
+                <button onclick="confirmNote()" class="px-6 py-2 bg-blue-500 text-white rounded-xl font-bold">確認</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="stamp-modal" class="modal-overlay" onclick="if(event.target==this) closeModal('stamp-modal')">
+        <div class="modal-content">
+            <h3 class="font-bold mb-4 text-center">選擇印章</h3>
+            <div class="stamp-grid" id="stamp-options"></div>
+            <input type="text" id="custom-stamp-input" maxlength="10" class="w-full border-2 border-gray-100 p-3 rounded-xl mb-3 outline-none" placeholder="或輸入文字...">
+            <button onclick="confirmCustomStamp()" class="w-full py-3 bg-blue-500 text-white rounded-xl font-bold">蓋上印章</button>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('canvas-container');
+        const photoInput = document.getElementById('photo-input');
+        const noteText = document.getElementById('note-text');
+        const stampOptionsContainer = document.getElementById('stamp-options');
+        const customStampInput = document.getElementById('custom-stamp-input');
+        const loadingToast = document.getElementById('loading-toast');
+        
+        let zIndexCounter = 100;
+        let selectedItem = null;
+
+        const STAMP_LIST = ['🗼', '✈️', '📷', '🍜', '🇯🇵', '🌸', '☀️', '🎒', '🍦', '🏮', '🦌', '🕶️', '⛩️', '🍣', '🚅', '🗻', '🏰', '🗺️'];
+        const STAMP_COLORS = ['#ef4444', '#3b82f6', '#10b981', '#1f2937', '#8b5cf6'];
+
+        function initStampOptions() {
+            STAMP_LIST.forEach(emoji => {
+                const opt = document.createElement('div');
+                opt.className = 'stamp-option';
+                opt.innerText = emoji;
+                opt.onclick = () => { addCustomStamp(emoji); closeModal('stamp-modal'); };
+                stampOptionsContainer.appendChild(opt);
+            });
+        }
+
+        // 取消選取所有物件
+        function deselectAll() {
+            document.querySelectorAll('.scrapbook-item').forEach(i => i.classList.remove('active'));
+            selectedItem = null;
+        }
+
+        // 監聽畫布點擊（用來取消選取）
+        container.addEventListener('mousedown', (e) => {
+            if (e.target === container) deselectAll();
+        });
+        container.addEventListener('touchstart', (e) => {
+            if (e.target === container) deselectAll();
+        }, {passive: false});
+
+        function createItem(content) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `scrapbook-item`;
+            
+            const winW = window.innerWidth;
+            const winH = window.innerHeight;
+            wrapper.style.left = `${(winW / 2) - 100}px`;
+            wrapper.style.top = `${(winH / 2) - 100}px`;
+            wrapper.style.zIndex = ++zIndexCounter;
+            wrapper.dataset.rotation = Math.floor(Math.random() * 20 - 10);
+            wrapper.dataset.scale = 1;
+
+            // 刪除按鈕
+            const delBtn = document.createElement('div');
+            delBtn.className = 'control-dot btn-delete';
+            delBtn.innerHTML = '✕';
+            delBtn.addEventListener('mousedown', (e) => { e.stopPropagation(); wrapper.remove(); });
+            delBtn.addEventListener('touchstart', (e) => { e.stopPropagation(); wrapper.remove(); });
+
+            // 縮放旋轉按鈕
+            const transBtn = document.createElement('div');
+            transBtn.className = 'control-dot btn-transform';
+            transBtn.innerHTML = `<svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor"><path d="M21 11V3h-8l3.29 3.29-10 10L3 13v8h8l-3.29-3.29 10-10L21 11z"/></svg>`;
+            
+            setupTransform(wrapper, transBtn);
+
+            wrapper.appendChild(delBtn);
+            wrapper.appendChild(transBtn);
+            wrapper.appendChild(content);
+            container.appendChild(wrapper);
+
+            applyTransform(wrapper);
+            setupDrag(wrapper);
+
+            // 物件點擊選中邏輯
+            const handleSelect = (e) => {
+                e.stopPropagation();
+                deselectAll();
+                wrapper.classList.add('active');
+                wrapper.style.zIndex = ++zIndexCounter;
+                selectedItem = wrapper;
+            };
+
+            wrapper.addEventListener('mousedown', handleSelect);
+            wrapper.addEventListener('touchstart', handleSelect, {passive: false});
+
+            selectItem(wrapper);
+            return wrapper;
+        }
+
+        function selectItem(item) {
+            deselectAll();
+            item.classList.add('active');
+            item.style.zIndex = ++zIndexCounter;
+            selectedItem = item;
+        }
+
+        function applyTransform(item) {
+            item.style.transform = `rotate(${item.dataset.rotation}deg) scale(${item.dataset.scale})`;
+        }
+
+        function setupTransform(item, handle) {
+            const startHandler = (e) => {
+                e.stopPropagation(); e.preventDefault();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                const rect = item.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                const startDist = Math.hypot(clientX - centerX, clientY - centerY);
+                const startAngle = Math.atan2(clientY - centerY, clientX - centerX);
+                const startScale = parseFloat(item.dataset.scale);
+                const startRotation = parseFloat(item.dataset.rotation);
+
+                const onMove = (me) => {
+                    const mX = me.touches ? me.touches[0].clientX : me.clientX;
+                    const mY = me.touches ? me.touches[0].clientY : me.clientY;
+                    const newDist = Math.hypot(mX - centerX, mY - centerY);
+                    const newAngle = Math.atan2(mY - centerY, mX - centerX);
+                    item.dataset.scale = Math.max(0.3, Math.min(4, startScale * (newDist / startDist)));
+                    item.dataset.rotation = startRotation + (newAngle - startAngle) * (180 / Math.PI);
+                    applyTransform(item);
+                };
+                const onEnd = () => {
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('touchmove', onMove);
+                };
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('touchmove', onMove, {passive: false});
+                document.addEventListener('mouseup', onEnd);
+                document.addEventListener('touchend', onEnd);
+            };
+            handle.addEventListener('mousedown', startHandler);
+            handle.addEventListener('touchstart', startHandler, {passive: false});
+        }
+
+        function setupDrag(item) {
+            const dragStart = (e) => {
+                if (e.target.classList.contains('control-dot')) return;
+                
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                let offX = clientX - item.offsetLeft;
+                let offY = clientY - item.offsetTop;
+
+                let moved = false;
+
+                const dragMove = (me) => {
+                    moved = true;
+                    const mX = me.touches ? me.touches[0].clientX : me.clientX;
+                    const mY = me.touches ? me.touches[0].clientY : me.clientY;
+                    item.style.left = `${mX - offX}px`;
+                    item.style.top = `${mY - offY}px`;
+                };
+
+                const dragEnd = () => {
+                    document.removeEventListener('mousemove', dragMove);
+                    document.removeEventListener('touchmove', dragMove);
+                };
+
+                document.addEventListener('mousemove', dragMove);
+                document.addEventListener('touchmove', dragMove, {passive: false});
+                document.addEventListener('mouseup', dragEnd);
+                document.addEventListener('touchend', dragEnd);
+            };
+            item.addEventListener('mousedown', dragStart);
+            item.addEventListener('touchstart', dragStart, {passive: false});
+        }
+
+        photoInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const div = document.createElement('div');
+                    div.className = 'polaroid';
+                    div.innerHTML = `<img src="${ev.target.result}">`;
+                    createItem(div);
+                };
+                reader.readAsDataURL(file);
+                photoInput.value = '';
+            }
+        };
+
+        function confirmNote() {
+            const text = noteText.value.trim();
+            if (text) {
+                const note = document.createElement('div');
+                note.className = 'torn-paper';
+                note.innerText = text;
+                createItem(note);
+            }
+            closeModal('note-modal');
+            noteText.value = '';
+        }
+
+        function confirmCustomStamp() {
+            const text = customStampInput.value.trim();
+            if (text) { addCustomStamp(text); customStampInput.value = ''; closeModal('stamp-modal'); }
+        }
+
+        function addCustomStamp(text) {
+            const stamp = document.createElement('div');
+            stamp.className = 'travel-stamp';
+            stamp.style.color = STAMP_COLORS[Math.floor(Math.random() * STAMP_COLORS.length)];
+            stamp.style.opacity = "0.85";
+            stamp.innerText = text;
+            createItem(stamp);
+        }
+
+        async function downloadScrapbook() {
+            try {
+                deselectAll();
+                loadingToast.innerText = '正在準備您的相簿...';
+                loadingToast.style.display = 'block';
+
+                await new Promise(resolve => setTimeout(resolve, 800));
+
+                const canvas = await html2canvas(container, {
+                    useCORS: true,
+                    scale: 2,
+                    backgroundColor: '#fafaf8',
+                    scrollX: 0,
+                    scrollY: 0,
+                    width: container.offsetWidth,
+                    height: container.offsetHeight
+                });
+
+                canvas.toBlob((blob) => {
+                    if (!blob) throw new Error('轉檔失敗');
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `scrapbook-${Date.now()}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    setTimeout(() => {
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                        loadingToast.style.display = 'none';
+                    }, 200);
+                }, 'image/png');
+
+            } catch (err) {
+                console.error(err);
+                loadingToast.innerText = '儲存失敗';
+                setTimeout(() => loadingToast.style.display = 'none', 2000);
+            }
+        }
+
+        function showModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        window.onload = () => {
+            initStampOptions();
+            const welcome = document.createElement('div');
+            welcome.className = 'torn-paper';
+            welcome.innerText = "點擊物件即可顯示編輯工具，拖曳空白處取消選取。";
+            createItem(welcome);
+        };
+    </script>
+</body>
+</html>
