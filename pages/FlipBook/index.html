@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 3D 擬真翻頁書轉換器</title>
+    <!-- 引入 PDF.js, PageFlip, jsPDF 和 Tailwind -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #d1d5db;
+            overflow-x: hidden;
+        }
+
+        #flipbook-container {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+            min-height: 85vh;
+            perspective: 2000px; /* 增加透視感減少渲染錯誤 */
+        }
+
+        .flip-book {
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            background-color: transparent;
+        }
+
+        .page {
+            background-color: white;
+            overflow: hidden;
+            /* 移除可能導致殘影的特定變換 */
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+
+        .page-content {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: white;
+        }
+
+        img {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+            /* 防止圖片拉伸產生的鋸齒 */
+            image-rendering: -webkit-optimize-contrast;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-300 font-sans">
+
+    <!-- 導航欄 -->
+    <nav class="bg-white shadow-md p-4 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            <h1 class="text-xl font-bold text-blue-600 flex items-center cursor-pointer" onclick="location.reload()">
+                <svg class="w-7 h-7 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                PDF 擬真翻頁書工具
+            </h1>
+            
+            <div id="controls" class="hidden flex items-center space-x-2 md:space-x-4">
+                <div class="flex bg-gray-100 rounded-lg p-1 items-center shadow-inner">
+                    <button id="prevBtn" class="p-2 hover:bg-white rounded-md transition shadow-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <span id="pageInfo" class="px-4 text-sm font-bold text-gray-700 min-w-[80px] text-center">0 / 0</span>
+                    <button id="nextBtn" class="p-2 hover:bg-white rounded-md transition shadow-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                </div>
+                
+                <button id="downloadBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition flex items-center shadow-lg active:scale-95">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    下載雙頁 PDF
+                </button>
+                
+                <button onclick="location.reload()" class="text-gray-400 hover:text-red-500 p-2 transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 上傳區域 -->
+    <div id="upload-section" class="max-w-2xl mx-auto mt-16 p-12 bg-white rounded-3xl shadow-2xl text-center border-4 border-double border-gray-100">
+        <div class="mb-8">
+            <div class="mx-auto w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mb-6">
+                <svg class="w-12 h-12 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+            </div>
+            <h2 class="text-3xl font-black text-gray-800 tracking-tight">PDF 翻頁書轉換</h2>
+            <p class="text-gray-500 mt-4 text-lg">修正殘影渲染，享受更流暢的閱讀體驗</p>
+        </div>
+        
+        <input type="file" id="pdf-input" accept="application/pdf" class="hidden">
+        <label for="pdf-input" class="cursor-pointer bg-indigo-600 text-white px-12 py-5 rounded-2xl font-bold text-xl hover:bg-indigo-700 transition transform hover:scale-105 inline-block shadow-xl">
+            立即上傳 PDF
+        </label>
+        <p class="text-sm text-gray-400 mt-8 font-medium">檔案將在瀏覽器內完成處理，不會上傳至雲端</p>
+    </div>
+
+    <!-- 載入中 -->
+    <div id="loading-section" class="hidden fixed inset-0 bg-white/90 backdrop-blur-md z-50 flex flex-col items-center justify-center text-center">
+        <div class="loader mb-6 border-4 w-12 h-12"></div>
+        <p id="loading-text" class="text-2xl font-black text-gray-800">渲染頁面中...</p>
+        <p class="text-gray-500 mt-2 font-medium">正在優化每一頁的邊緣質感</p>
+    </div>
+
+    <!-- 翻頁書容器 -->
+    <div id="flipbook-container">
+        <div id="book" class="flip-book">
+            <!-- 動態插入內容 -->
+        </div>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const { jsPDF } = window.jspdf;
+
+        const pdfInput = document.getElementById('pdf-input');
+        const uploadSection = document.getElementById('upload-section');
+        const loadingSection = document.getElementById('loading-section');
+        const flipbookContainer = document.getElementById('flipbook-container');
+        const bookElement = document.getElementById('book');
+        const loadingText = document.getElementById('loading-text');
+        const controls = document.getElementById('controls');
+        const pageInfo = document.getElementById('pageInfo');
+
+        let pageFlip = null;
+        let pageImages = []; 
+        let originalFileName = "flipbook.pdf";
+
+        pdfInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file || file.type !== 'application/pdf') return;
+            
+            originalFileName = file.name.replace('.pdf', '_spread.pdf');
+            uploadSection.classList.add('hidden');
+            loadingSection.classList.remove('hidden');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+                const numPages = pdf.numPages;
+
+                bookElement.innerHTML = '';
+                pageImages = [];
+
+                const firstPage = await pdf.getPage(1);
+                const baseViewport = firstPage.getViewport({ scale: 1.0 });
+                const baseWidth = baseViewport.width;
+                const baseHeight = baseViewport.height;
+
+                for (let i = 1; i <= numPages; i++) {
+                    loadingText.innerText = `準備頁面: ${i} / ${numPages}`;
+                    
+                    const page = await pdf.getPage(i);
+                    const viewport = page.getViewport({ scale: 2.5 }); // 再次提升縮放率以減少縮放時的摩爾紋殘影
+                    
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+
+                    // 填充純白背景，防止 Canvas 透明產生的疊影
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    await page.render({
+                        canvasContext: ctx,
+                        viewport: viewport
+                    }).promise;
+
+                    // 直接在 Canvas 上繪製陰影，避免使用 CSS ::after 產生的 3D 渲染層次問題
+                    const isLeftPage = (i > 1 && i % 2 === 0);
+                    const isRightPage = (i === 1 || i % 2 !== 0);
+                    const shadowWidth = canvas.width * 0.08; 
+                    
+                    let gradient;
+                    if (isLeftPage) {
+                        gradient = ctx.createLinearGradient(canvas.width - shadowWidth, 0, canvas.width, 0);
+                        gradient.addColorStop(0, 'rgba(0,0,0,0)');
+                        gradient.addColorStop(1, 'rgba(0,0,0,0.12)');
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(canvas.width - shadowWidth, 0, shadowWidth, canvas.height);
+                    } else if (isRightPage && i > 1) { // 封面不需要太重左側陰影，內頁需要
+                        gradient = ctx.createLinearGradient(0, 0, shadowWidth, 0);
+                        gradient.addColorStop(0, 'rgba(0,0,0,0.12)');
+                        gradient.addColorStop(1, 'rgba(0,0,0,0)');
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(0, 0, shadowWidth, canvas.height);
+                    }
+
+                    const imgData = canvas.toDataURL('image/jpeg', 0.9);
+                    pageImages.push({
+                        data: imgData,
+                        width: canvas.width,
+                        height: canvas.height
+                    });
+
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'page';
+                    pageDiv.innerHTML = `
+                        <div class="page-content">
+                            <img src="${imgData}" alt="Page ${i}">
+                        </div>
+                    `;
+                    bookElement.appendChild(pageDiv);
+                }
+
+                initPageFlip(baseWidth, baseHeight);
+                
+                loadingSection.classList.add('hidden');
+                flipbookContainer.style.display = 'flex';
+                controls.classList.remove('hidden');
+
+            } catch (err) {
+                console.error(err);
+                alert('轉換過程中發生錯誤。');
+                location.reload();
+            }
+        });
+
+        function initPageFlip(w, h) {
+            const containerWidth = window.innerWidth * 0.95;
+            const containerHeight = window.innerHeight * 0.8;
+            
+            const ratio = Math.min(containerWidth / (w * 2), containerHeight / h);
+            const fitW = Math.floor(w * ratio);
+            const fitH = Math.floor(h * ratio);
+
+            // 銷毀舊實例
+            if (pageFlip) pageFlip.destroy();
+
+            pageFlip = new St.PageFlip(bookElement, {
+                width: fitW,
+                height: fitH,
+                size: "stretch",
+                minWidth: 300,
+                maxWidth: 1400,
+                minHeight: 400,
+                maxHeight: 1800,
+                showCover: true,
+                maxShadowOpacity: 0.3, // 調低預設陰影強度，因為我們手繪了書脊陰影
+                useMouseEvents: true,
+                flippingTime: 800,
+                swipeDistance: 15,
+                showPageCorners: true, // 顯示角落翻頁提示
+                disableFlipByClick: false // 允許點擊角落翻頁
+            });
+
+            pageFlip.loadFromHTML(document.querySelectorAll('.page'));
+            updateUI();
+
+            pageFlip.on('flip', () => updateUI());
+            document.getElementById('prevBtn').onclick = () => pageFlip.flipPrev();
+            document.getElementById('nextBtn').onclick = () => pageFlip.flipNext();
+            document.getElementById('downloadBtn').onclick = downloadAsSpreadPdf;
+        }
+
+        function updateUI() {
+            if (pageFlip) {
+                const current = pageFlip.getCurrentPageIndex() + 1;
+                const total = pageFlip.getPageCount();
+                pageInfo.innerText = `${current} / ${total}`;
+            }
+        }
+
+        async function downloadAsSpreadPdf() {
+            if (pageImages.length === 0) return;
+            
+            const btn = document.getElementById('downloadBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<div class="loader w-4 h-4 border-2"></div><span class="ml-2">PDF 生成中...</span>';
+            btn.disabled = true;
+
+            try {
+                const first = pageImages[0];
+                const pdf = new jsPDF({
+                    orientation: 'l',
+                    unit: 'px',
+                    format: [first.width * 2, first.height] 
+                });
+
+                let idx = 0;
+                
+                // 第一頁 (封面對齊右側)
+                pdf.addImage(pageImages[0].data, 'JPEG', first.width, 0, first.width, first.height);
+                idx++;
+
+                while (idx < pageImages.length) {
+                    pdf.addPage([first.width * 2, first.height], 'l');
+                    // 左頁
+                    if (idx < pageImages.length) {
+                        pdf.addImage(pageImages[idx].data, 'JPEG', 0, 0, first.width, first.height);
+                        idx++;
+                    }
+                    // 右頁
+                    if (idx < pageImages.length) {
+                        pdf.addImage(pageImages[idx].data, 'JPEG', first.width, 0, first.width, first.height);
+                        idx++;
+                    }
+                }
+
+                pdf.save(originalFileName);
+            } catch (err) {
+                console.error(err);
+                alert('匯出失敗');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
