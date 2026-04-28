@@ -76,10 +76,6 @@ npm run preview  # Preview production build
 - **Export JSON** — Exports a work backup including a snapshot
 - **Home download icon** — Exports all works as a ZIP archive
 
-### Showcase import
-
-When a card shows "Import Showcase", click it to import sample works from `/showcase/badge-tool-works.zip`.
-
 ---
 
 ## Tech Stack
@@ -123,11 +119,11 @@ src/
 
 ## Data Format
 
-Works are stored as JSON, compatible with the [medal-forge](https://github.com/example/medal-forge) showcase ZIP format:
+Works are stored as JSON, compatible with the [badgetool](https://github.com/maowu/VibeCodingTools) showcase ZIP format:
 
 ```jsonc
 {
-  "kind": "com.medal-forge.work",
+  "kind": "com.badgetool.work",
   "schemaVersion": 1,
   "document": { "id": "...", "title": "...", "createdAt": "...", "updatedAt": "..." },
   "source": { "primaryAssetId": "...", "assets": [{ "kind": "source-svg", "text": "..." }] },

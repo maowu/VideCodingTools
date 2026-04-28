@@ -53,7 +53,7 @@ export interface MedalSettings {
   shapeSettings: Record<string, ShapeSettingsPatch>;
 }
 
-export type WorkDocumentKind = "com.medal-forge.work";
+export type WorkDocumentKind = "com.badgetool.work";
 export type WorkAssetKind = "source-svg";
 export type WorkAssetEncoding = "utf-8";
 

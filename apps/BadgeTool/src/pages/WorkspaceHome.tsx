@@ -58,7 +58,6 @@ const VIEW_FIT_PADDING_Y = 180;
 const MIN_ZOOM = 0.35;
 const MAX_ZOOM = 2.2;
 const LIVE_PREVIEW_QUEUE_DELAY_MS = 100;
-const SHOWCASE_IMPORT_CARD_ID = "showcase-import";
 
 interface ViewTransform {
   x: number;
@@ -135,11 +134,11 @@ function getSafeFileStem(value: string) {
 
 function getUniqueArchiveFileName(title: string, usedNames: Set<string>) {
   const baseName = getSafeFileStem(title);
-  let fileName = `${baseName}.medal-forge.json`;
+  let fileName = `${baseName}.badgetool.json`;
   let suffix = 2;
 
   while (usedNames.has(fileName)) {
-    fileName = `${baseName}-${suffix}.medal-forge.json`;
+    fileName = `${baseName}-${suffix}.badgetool.json`;
     suffix += 1;
   }
 
@@ -229,7 +228,6 @@ export function WorkspaceHome() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [workMenuAnchor, setWorkMenuAnchor] = useState<WorkMenuAnchor | null>(null);
   const [isBooting, setIsBooting] = useState(true);
-  const [isImportingShowcase, setIsImportingShowcase] = useState(false);
   const [view, setView] = useState<ViewTransform>({ x: 0, y: 0, scale: 1 });
 
   const applyWorldTransform = useCallback((nextView: ViewTransform) => {
@@ -272,27 +270,7 @@ export function WorkspaceHome() {
 
   const positionedWorks = useMemo(() => positionWorkSummaries(works), [works]);
 
-  const positionedShowcaseImportCard = useMemo(() => {
-    if (works.length >= 2) {
-      return null;
-    }
-
-    const cell = getSpiralCell(positionedWorks.length);
-
-    return {
-      id: SHOWCASE_IMPORT_CARD_ID,
-      x: cell.x * CARD_SPACING_X,
-      y: cell.y * CARD_SPACING_Y,
-    };
-  }, [positionedWorks.length, works.length]);
-
-  const positionedLayoutItems = useMemo(
-    () =>
-      positionedShowcaseImportCard
-        ? [...positionedWorks, positionedShowcaseImportCard]
-        : positionedWorks,
-    [positionedShowcaseImportCard, positionedWorks],
-  );
+  const positionedLayoutItems = positionedWorks;
 
   const livePreviewQueueKey = useMemo(() => {
     return works
@@ -850,80 +828,7 @@ export function WorkspaceHome() {
     navigate(`/work/${createWorkId()}`);
   }
 
-  function fitWorksInView(nextWorks: SavedWorkSummary[]) {
-    const viewport = viewportRef.current;
-    if (!viewport) {
-      return;
-    }
 
-    const nextPositionedWorks = positionWorkSummaries(nextWorks);
-    if (nextPositionedWorks.length === 0) {
-      return;
-    }
-
-    setView(getInitialView(nextPositionedWorks, viewport.getBoundingClientRect()));
-  }
-
-  async function importWorkDocumentsFromZipBlob(blob: Blob) {
-    const zip = await JSZip.loadAsync(blob);
-    let importedCount = 0;
-    let skippedCount = 0;
-
-    for (const entry of Object.values(zip.files)) {
-      if (entry.dir || !entry.name.endsWith(".json")) {
-        continue;
-      }
-
-      try {
-        const parsed = JSON.parse(await entry.async("string")) as unknown;
-
-        if (!isWorkDocument(parsed)) {
-          skippedCount += 1;
-          continue;
-        }
-
-        await saveWorkDocument(normalizeWorkDocument(parsed));
-        importedCount += 1;
-      } catch {
-        skippedCount += 1;
-      }
-    }
-
-    return { importedCount, skippedCount };
-  }
-
-  async function importShowcaseWorks() {
-    if (isImportingShowcase) {
-      return;
-    }
-
-    setOpenMenuId(null);
-    setIsImportingShowcase(true);
-
-    try {
-      const response = await fetch("/showcase/badge-tool-works.zip");
-
-      if (!response.ok) {
-        throw new Error(`Showcase import failed with ${response.status}`);
-      }
-
-      const { importedCount } = await importWorkDocumentsFromZipBlob(
-        await response.blob(),
-      );
-      const nextWorks = await listSavedWorks();
-
-      setWorks(nextWorks);
-      fitWorksInView(nextWorks);
-
-      if (importedCount === 0) {
-        window.alert("No showcase works were imported.");
-      }
-    } catch {
-      window.alert("Could not import showcase works.");
-    } finally {
-      setIsImportingShowcase(false);
-    }
-  }
 
   async function exportAllWorkJson() {
     setOpenMenuId(null);
@@ -960,7 +865,7 @@ export function WorkspaceHome() {
       "manifest.json",
       JSON.stringify(
         {
-          kind: "com.medal-forge.export",
+          kind: "com.badgetool.export",
           exportedAt: createTimestamp(),
           documentCount: documents.length,
           refreshedSnapshotCount,
@@ -975,7 +880,7 @@ export function WorkspaceHome() {
       compression: "DEFLATE",
       compressionOptions: { level: 6 },
     });
-    downloadBlob(blob, `medal-forge-works-${Date.now()}.zip`);
+    downloadBlob(blob, `badgetool-works-${Date.now()}.zip`);
 
     if (refreshedSnapshotCount > 0) {
       setWorks(await listSavedWorks());
@@ -1078,7 +983,7 @@ export function WorkspaceHome() {
 
     downloadBlob(
       new Blob([JSON.stringify(nextDoc, null, 2)], { type: "application/json" }),
-      `${getSafeFileStem(nextDoc.document.title)}.medal-forge.json`,
+      `${getSafeFileStem(nextDoc.document.title)}.badgetool.json`,
     );
   }
 
@@ -1261,36 +1166,6 @@ export function WorkspaceHome() {
               </div>
             );
           })}
-          {positionedShowcaseImportCard ? (
-            <div
-              className="work-card showcase-import-card"
-              key={positionedShowcaseImportCard.id}
-              onPointerDown={(event) => event.stopPropagation()}
-              style={{
-                left: positionedShowcaseImportCard.x,
-                top: positionedShowcaseImportCard.y,
-              }}
-            >
-              <button
-                aria-label="Import showcase works"
-                className="showcase-import-button"
-                disabled={isImportingShowcase}
-                onClick={importShowcaseWorks}
-                type="button"
-              >
-                <span className="showcase-import-frame">
-                  {isImportingShowcase ? (
-                    <span className="home-spinner" />
-                  ) : (
-                    <Upload size={34} />
-                  )}
-                </span>
-                <span className="work-card-title">
-                  {isImportingShowcase ? "Importing..." : "Import Showcase"}
-                </span>
-              </button>
-            </div>
-          ) : null}
         </div>
       </div>
 

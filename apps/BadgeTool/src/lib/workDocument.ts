@@ -7,7 +7,9 @@ import type {
 import { DEFAULT_SETTINGS } from "@/lib/defaults";
 
 export const WORK_DOCUMENT_SCHEMA_VERSION = 1;
-export const WORK_DOCUMENT_KIND = "com.medal-forge.work";
+export const WORK_DOCUMENT_KIND = "com.badgetool.work";
+// Legacy kind from the original medal-forge format, accepted for import compatibility.
+const LEGACY_WORK_DOCUMENT_KIND = "com.medal-forge.work";
 export const WORK_APP_VERSION = "0.1.0";
 
 interface CreateWorkDocumentInput {
@@ -169,7 +171,7 @@ export function isWorkDocument(value: unknown): value is WorkDocument {
   const settings = candidate.scene?.settings;
 
   return (
-    candidate.kind === WORK_DOCUMENT_KIND &&
+    (candidate.kind === WORK_DOCUMENT_KIND || candidate.kind === LEGACY_WORK_DOCUMENT_KIND) &&
     candidate.schemaVersion === WORK_DOCUMENT_SCHEMA_VERSION &&
     typeof candidate.compatibility?.minReaderSchemaVersion === "number" &&
     candidate.app?.name === "Medal Forge" &&
@@ -200,6 +202,8 @@ export function isWorkDocument(value: unknown): value is WorkDocument {
 export function normalizeWorkDocument(document: WorkDocument): WorkDocument {
   return {
     ...document,
+    // Migrate legacy kind to current kind on import.
+    kind: WORK_DOCUMENT_KIND,
     scene: {
       ...document.scene,
       settings: normalizeMedalSettings(document.scene.settings),

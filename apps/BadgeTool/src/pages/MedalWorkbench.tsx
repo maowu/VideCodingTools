@@ -1429,7 +1429,7 @@ export function MedalWorkbench() {
       type: "application/json",
     });
 
-    downloadBlob(blob, `${getFileStem(fileName)}.medal-forge.json`);
+    downloadBlob(blob, `${getFileStem(fileName)}.badgetool.json`);
     setStatus("Work JSON exported");
   }
 

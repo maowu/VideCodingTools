@@ -424,7 +424,7 @@ export function buildMedalGroup(
     : settings;
 
   const group = new THREE.Group();
-  group.name = "medal-forge-model";
+  group.name = "badgetool-model";
 
   let records: SvgShapeRecord[] = [];
   try {
