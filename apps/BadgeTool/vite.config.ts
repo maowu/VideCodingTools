@@ -4,7 +4,7 @@ import wasm from "vite-plugin-wasm";
 import path from "path";
 
 export default defineConfig({
-  base: "/VibeCodingTools/pages/BadgeTool/",
+  base: "./",
   plugins: [wasm(), react()],
   resolve: {
     alias: {
