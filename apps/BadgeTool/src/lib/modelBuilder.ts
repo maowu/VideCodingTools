@@ -29,7 +29,7 @@ interface ShapeBounds {
 const SVG_LAYER_STEP = 0.004;
 const PREVIEW_MAX_CURVE_SEGMENTS = 6;
 const PREVIEW_MAX_BEVEL_SEGMENTS = 1;
-const PREVIEW_MAX_DOME_SEGMENTS = 8;
+const PREVIEW_MAX_DOME_SEGMENTS = 32;
 const ATTR_PATTERN = /([\w:-]+)\s*=\s*("([^"]*)"|'([^']*)')/g;
 const SHAPE_TAG_PATTERN =
   /<(path|rect|circle|ellipse|polygon|polyline|line)\b[^>]*(?:\/>|>[\s\S]*?<\/\1>)/gi;
@@ -346,7 +346,7 @@ function applyDomeToGeometry(
 
   const domeRadius = Math.max(settings.modelSize * dome.radius * 0.5, 0.001);
   const maxEdgeLength =
-    settings.modelSize / Math.max(4, Math.round(dome.segments));
+    settings.modelSize / Math.max(8, Math.round(dome.segments) * 3);
   const modifier = new TessellateModifier(maxEdgeLength, 7);
   const tessellatedGeometry = modifier.modify(geometry);
 

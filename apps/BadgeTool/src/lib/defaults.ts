@@ -15,13 +15,13 @@ export const DEFAULT_SHAPE_SETTINGS: ShapeSettings = {
   svgAdjustments: {},
 };
 
-export const DEFAULT_FILE_NAME = "2026-03.svg";
+export const DEFAULT_FILE_NAME = "2026-04.svg";
 
 export const DEFAULT_DOME_SETTINGS: DomeSettings = {
   enabled: false,
   depth: 0.42,
   radius: 1,
-  segments: 22,
+  segments: 48,
 };
 
 export const DEFAULT_SETTINGS: MedalSettings = {
