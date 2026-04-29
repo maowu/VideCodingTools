@@ -11,8 +11,9 @@ Pure client-side SPA. All data is stored in browser IndexedDB — no backend req
 - **SVG upload** — Drag and drop or click to select `.svg`; all paths are parsed as editable layers
 - **PNG vectorization** — Upload `.png`; automatically traced to SVG via [vtracer-wasm](https://github.com/jsscheller/vtracer-wasm), then processed into the 3D pipeline
 - **Real-time 3D preview** — Three.js renderer with OrbitControls for interactive rotation
-- **Layer settings** — Each path can have its own thickness, bevel, material (6 PBR presets), color, and Z offset
-- **Dome effect** — Front-convex / back-concave surface displacement
+- **Per-layer settings** — Each path can have its own thickness, bevel, bevel segments, curve segments, depth steps, material (6 PBR presets), color, height offset (Z offset), and visibility toggle
+- **Reset to SVG color** — One-click restore of a layer's original fill color from the source SVG
+- **Dome effect** — Front-convex / back-concave surface displacement with high-quality tessellation
 - **Auto-save** — Silently saves to IndexedDB 2 s after editing stops (only for previously-saved works)
 - **Work gallery** — Spiral gallery with pan/zoom, live 3D preview, rename, and delete
 - **Export** — GLB 3D model, JSON backup, or ZIP of all works
@@ -58,6 +59,19 @@ npm run preview  # Preview production build
 | Esc | Clear selection |
 | Delete / Backspace | Delete selected layers |
 | Double-click layer name | Rename |
+| Eye icon | Toggle layer visibility |
+
+### Shape settings (right panel)
+
+| Control | Range | Description |
+|---------|-------|-------------|
+| Path winding | SVG / CW / CCW | Fill winding rule |
+| Thickness | 0.02 – 1.6 | Extrusion depth |
+| Depth steps | 1 – 12 | Extrusion subdivisions |
+| Bevel | 0 – 0.22 | Bevel size |
+| Bevel segments | 0 – 12 | Bevel smoothness |
+| Height offset | −1.2 – 1.2 | Z-axis offset |
+| Curve segments | 4 – 128 | Path curve resolution |
 
 ### Material presets
 
@@ -69,6 +83,16 @@ npm run preview  # Preview production build
 | Copper | Warm copper tones |
 | White Ceramic | White ceramic, non-metallic |
 | Matte Polymer | Matte plastic, no gloss |
+
+### Dome effect
+
+Enable in the **Dome** panel. Controls:
+
+| Control | Range | Description |
+|---------|-------|-------------|
+| Arc depth | 0.02 – 1.2 | Displacement height |
+| Arc radius | 0.65 – 1.45 | Dome coverage radius |
+| Arc smoothness | 8 – 128 | Tessellation density (default 48) |
 
 ### Export
 
@@ -119,7 +143,7 @@ src/
 
 ## Data Format
 
-Works are stored as JSON, compatible with the [badgetool](https://github.com/maowu/VibeCodingTools) showcase ZIP format:
+Works are stored as JSON:
 
 ```jsonc
 {
@@ -137,3 +161,8 @@ Works are stored as JSON, compatible with the [badgetool](https://github.com/mao
 ## License
 
 MIT
+
+---
+
+## Reference
+[medal-forge](https://github.com/CatsJuice/medal-forge) : inspired by medal-forge
